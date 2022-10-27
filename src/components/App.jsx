@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { GlobalStyle } from './GlobalStyle';
@@ -10,68 +10,60 @@ import { Box } from './Box';
 import { AppContainer } from './App.styled';
 import { Loader } from './Loader/Loader';
 
-export class App extends Component {
-  state = {
-    images: [],
-    query: '',
-    page: 1,
-    loading: false,
-  };
+export const App = () => {
+  const [images, setImages] = useState([]);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
 
-  componentDidUpdate = async (_, prevState) => {
-    if (
-      prevState.query !== this.state.query ||
-      prevState.page !== this.state.page
-    ) {
-      this.setState({ loading: true });
-      const images = await getImages(this.state.query, this.state.page);
+  useEffect(() => {
+    if (query === '') return;
+    const fetchData = async () => {
+      setLoading(true);
+      const images = await getImages(query, page);
       if (images.total === 0) {
         toast.info('No images found. Try another request.');
       }
-      this.setState(prevState => {
-        return {
-          images: [...prevState.images, ...images.hits],
-          loading: false,
-        };
-      });
-    }
-  };
+      setImages(state => [...state, ...images.hits]);
+      setLoading(false);
+    };
+    fetchData();
+  }, [query, page]);
 
-  onSubmit = async e => {
-    const query = e.target.input.value.trim();
-    if (this.state.query === query) {
+
+  const onSubmit = async e => {
+    const searchQuery = e.target.input.value.trim();
+    if (query === searchQuery) {
       return;
     }
-    this.setState({ images: [], query, page: 1 });
+
+    setImages([]);
+    setQuery(searchQuery);
+    setPage(1);
   };
 
-  onLoadMore = () => {
-    this.setState(prevState => {
-      return { page: prevState.page + 1 };
-    });
+  const onLoadMore = () => {
+    setPage(page + 1);
   };
 
-  render() {
-    const { images, loading } = this.state;
-    return (
-      <AppContainer>
-        <SearchBar onSubmit={this.onSubmit} />
+  return (
+    <AppContainer>
+      <SearchBar onSubmit={onSubmit} />
 
-        {images.length > 0 && <ImageGallery data={images} />}
+      {images.length > 0 && <ImageGallery data={images} />}
 
-        {images.length > 0 && !loading && (
-          <Button onClick={this.onLoadMore}>Load More</Button>
-        )}
+      {images.length > 0 && !loading && (
+        <Button onClick={onLoadMore}>Load More</Button>
+      )}
 
-        {loading && (
-          <Box ml="auto" mr="auto" width="80px">
-            <Loader />
-          </Box>
-        )}
+      {loading && (
+        <Box ml="auto" mr="auto" width="80px">
+          <Loader />
+        </Box>
+      )}
 
-        <ToastContainer position="top-right" autoClose={3000} />
-        <GlobalStyle />
-      </AppContainer>
-    );
-  }
-}
+      <ToastContainer position="top-right" autoClose={3000} />
+      <GlobalStyle />
+    </AppContainer>
+  );
+};
